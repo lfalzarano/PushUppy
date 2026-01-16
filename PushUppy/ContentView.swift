@@ -92,6 +92,7 @@ struct WorkoutContentView: View {
     }
 }
 
+
 // MARK: - History Content (without header)
 struct HistoryContentView: View {
     var body: some View {
