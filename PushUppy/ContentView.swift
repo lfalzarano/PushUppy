@@ -34,6 +34,11 @@ struct WorkoutStats {
 struct ContentView: View {
     @State private var selectedTab = 0
     @State private var stats = WorkoutStats()
+    @StateObject private var cameraManager = CameraManager()
+    @State private var showingSession = false
+    
+    // Namespace for matched geometry effect (expanding camera animation)
+    @Namespace private var cameraNamespace
     
     var body: some View {
         ZStack {
@@ -59,8 +64,12 @@ struct ContentView: View {
                 // Main Content Area - swipe between views
                 GeometryReader { geometry in
                     HStack(spacing: 0) {
-                        WorkoutContentView()
-                            .frame(width: geometry.size.width)
+                        WorkoutContentView(
+                            cameraManager: cameraManager,
+                            showingSession: $showingSession,
+                            cameraNamespace: cameraNamespace
+                        )
+                        .frame(width: geometry.size.width)
                         
                         HistoryContentView()
                             .frame(width: geometry.size.width)
@@ -75,23 +84,170 @@ struct ContentView: View {
                     .padding(.bottom, 10)
             }
         }
+        .fullScreenCover(isPresented: $showingSession) {
+            PushupSessionView(
+                cameraManager: cameraManager,
+                isPresented: $showingSession,
+                onSessionEnd: { count in
+                    // Update stats with session result
+                    if count > 0 {
+                        stats.totalPushups += count
+                        if count > stats.maxPushups {
+                            stats.maxPushups = count
+                        }
+                    }
+                }
+            )
+            .transition(.opacity.combined(with: .scale(scale: 0.95)))
+        }
     }
 }
 
 // MARK: - Workout Content (without header)
 struct WorkoutContentView: View {
+    @ObservedObject var cameraManager: CameraManager
+    @Binding var showingSession: Bool
+    var cameraNamespace: Namespace.ID
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Camera View
-                CameraPlaceholderView()
-                    .padding(.horizontal, AppTheme.padding)
-                    .padding(.top, 20)
+                // Live Camera View with Record Button
+                LiveCameraCardView(
+                    cameraManager: cameraManager,
+                    onRecordTapped: {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            showingSession = true
+                        }
+                    }
+                )
+                .padding(.horizontal, AppTheme.padding)
+                .padding(.top, 20)
             }
+        }
+        .onAppear {
+            cameraManager.startSession()
         }
     }
 }
 
+// MARK: - Live Camera Card View
+struct LiveCameraCardView: View {
+    @ObservedObject var cameraManager: CameraManager
+    let onRecordTapped: () -> Void
+    
+    @State private var isHovering = false
+    
+    var body: some View {
+        ZStack {
+            // Camera Preview or Placeholder
+            if cameraManager.permissionGranted {
+                CameraPreviewView(cameraManager: cameraManager)
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius))
+            } else {
+                // Placeholder when no camera permission
+                RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius)
+                    .fill(Color.black)
+                
+                VStack(spacing: 16) {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 40))
+                        .foregroundColor(.white.opacity(0.5))
+                    
+                    Text("Camera access required")
+                        .font(AppTheme.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                    
+                    Button("Enable Camera") {
+                        cameraManager.checkPermissions()
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.orange)
+                }
+            }
+            
+            // Overlay content
+            VStack {
+                Spacer()
+                
+                // Record button at bottom
+                RecordButtonView(onTap: onRecordTapped)
+                    .padding(.bottom, 30)
+            }
+            
+            // Top instruction text
+            VStack {
+                Text("Tap to start tracking")
+                    .font(AppTheme.caption)
+                    .foregroundColor(.white.opacity(0.8))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule()
+                            .fill(.ultraThinMaterial)
+                    )
+                    .padding(.top, 20)
+                
+                Spacer()
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 450)
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius))
+        .shadow(color: .black.opacity(0.2), radius: 10, y: 5)
+    }
+}
+
+// MARK: - Record Button
+struct RecordButtonView: View {
+    let onTap: () -> Void
+    
+    @State private var isPressing = false
+    @State private var pulseScale: CGFloat = 1.0
+    
+    var body: some View {
+        Button(action: onTap) {
+            ZStack {
+                // Outer pulse ring
+                Circle()
+                    .stroke(Color.red.opacity(0.3), lineWidth: 3)
+                    .frame(width: 80, height: 80)
+                    .scaleEffect(pulseScale)
+                    .opacity(2 - pulseScale)
+                
+                // Outer ring
+                Circle()
+                    .stroke(Color.white, lineWidth: 4)
+                    .frame(width: 70, height: 70)
+                
+                // Inner red circle
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: 54, height: 54)
+                    .scaleEffect(isPressing ? 0.85 : 1.0)
+                
+                // Record icon
+                Image(systemName: "record.circle")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundColor(.white)
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(isPressing ? 0.95 : 1.0)
+        .animation(.easeInOut(duration: 0.1), value: isPressing)
+        .onAppear {
+            // Pulse animation
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: false)) {
+                pulseScale = 1.3
+            }
+        }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in isPressing = true }
+                .onEnded { _ in isPressing = false }
+        )
+    }
+}
 
 // MARK: - History Content (without header)
 struct HistoryContentView: View {
@@ -192,38 +348,6 @@ struct StatRow: View {
                 .foregroundColor(.white)
                 .fontWeight(.semibold)
         }
-    }
-}
-
-// MARK: - Camera Placeholder
-struct CameraPlaceholderView: View {
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius)
-                .fill(Color.black)
-            
-            VStack(spacing: 20) {
-                Text("Count:")
-                    .font(AppTheme.headline)
-                    .foregroundColor(.white)
-                
-                Text("0")
-                    .font(AppTheme.largeTitle)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                Text("Camera view will track your pushups")
-                    .font(AppTheme.caption)
-                    .foregroundColor(.white.opacity(0.7))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-            }
-            .padding(.top, 40)
-            .padding(.bottom, 30)
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 450)
     }
 }
 
