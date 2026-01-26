@@ -25,24 +25,24 @@ struct PushupSessionView: View {
             }
             
             // UI Overlays
-            VStack {
-                // Top bar: Info panel (left) and close button (right)
-                HStack(alignment: .top) {
-                    // Info panel
-                    if cameraManager.isRecording {
-                        InfoPanelOverlayView(cameraManager: cameraManager)
-                            .transition(.move(edge: .leading).combined(with: .opacity))
-                    }
-                    
-                    Spacer()
-                    
-                    // Close button
+            VStack(spacing: 0) {
+                // Top section: Close button and info panel
+                VStack(alignment: .trailing, spacing: 8) {
+                    // Close button in top-right
                     CloseButton {
                         endSession()
                     }
+                    .padding(.trailing, 16)
+                    .padding(.top, 50) // Account for safe area / notch
+                    
+                    // Full-width info panel below close button
+                    if cameraManager.isRecording {
+                        InfoPanelOverlayView(cameraManager: cameraManager)
+                            .padding(.horizontal, 16)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 60) // Account for safe area
+                .frame(maxWidth: .infinity, alignment: .trailing)
                 
                 Spacer()
                 

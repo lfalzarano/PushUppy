@@ -215,8 +215,13 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
             self.processBodyPoseResults(request.results)
         }
         
-        // Perform detection
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
+        // Perform detection with correct orientation for front camera in portrait mode
+        // .leftMirrored accounts for the 90° rotation and horizontal mirroring of front camera
+        let handler = VNImageRequestHandler(
+            cvPixelBuffer: pixelBuffer,
+            orientation: .leftMirrored,
+            options: [:]
+        )
         do {
             try handler.perform([request])
         } catch {

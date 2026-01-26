@@ -58,14 +58,21 @@ struct SkeletonOverlayView: View {
     
     // MARK: - Coordinate Conversion
     
-    /// Convert normalized Vision coordinates to screen coordinates
-    /// Vision: (0,0) = bottom-left, (1,1) = top-right
-    /// SwiftUI: (0,0) = top-left
-    /// Front camera is mirrored by CameraManager, so no X flip needed
+    /// Convert normalized Vision coordinates to screen coordinates for the front camera.
+    ///
+    /// Coordinate systems:
+    /// - Vision: Origin at bottom-left, Y increases upward (0,0) = bottom-left, (1,1) = top-right
+    /// - SwiftUI: Origin at top-left, Y increases downward (0,0) = top-left
+    ///
+    /// Transformations applied:
+    /// - X is flipped (1 - x) to mirror horizontally, matching the mirrored front camera preview
+    /// - Y is flipped (1 - y) to convert from Vision's bottom-left origin to SwiftUI's top-left origin
+    ///
+    /// This works with .leftMirrored orientation hint passed to VNImageRequestHandler in CameraManager.
     private func convertToScreenPoint(_ normalizedPoint: CGPoint, in size: CGSize) -> CGPoint {
         return CGPoint(
-            x: normalizedPoint.x * size.width,
-            y: (1 - normalizedPoint.y) * size.height  // Flip Y for SwiftUI coordinates
+            x: (1 - normalizedPoint.x) * size.width,   // Mirror X to match front camera preview
+            y: (1 - normalizedPoint.y) * size.height   // Flip Y for SwiftUI's top-left origin
         )
     }
     

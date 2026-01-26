@@ -61,6 +61,14 @@ class PushupDetector {
     private var lastKnownActiveState: PushupState = .unknown  // Persist last non-unknown state
     private(set) var pushupCount = 0
     
+    // MARK: - Configuration Flags
+    
+    /// Set to true to require shoulder drop validation for counting reps.
+    /// When false, reps are counted based on state machine only (UP→DESC→DOWN→ASC→UP).
+    /// The state machine provides sufficient protection against false positives in most cases.
+    /// Enable this if you notice false counts from arm movements without actual pushups.
+    private let requireShoulderDropValidation: Bool = false
+    
     // Thresholds based on strategy document
     private let upAngleThreshold: Double = 150.0      // State 0: Arms nearly straight
     private let downAngleThreshold: Double = 90.0     // State 2: Depth threshold
@@ -98,6 +106,9 @@ class PushupDetector {
     private let armSwitchConfidenceMargin: Float = 1.2  // New arm must be 20% more confident
     private let armSwitchFrameThreshold: Int = 5        // Must maintain higher confidence for 5 frames
     
+    // Arm locking during active rep (prevents switching mid-pushup)
+    private var armLockedForRep: Bool = false
+    
     // Face-camera detection (when elbows go behind the body)
     private var isFacingCamera: Bool = false
     
@@ -123,6 +134,7 @@ class PushupDetector {
         // Reset arm tracking
         currentPrimaryArmConfidence = 0
         alternateArmHigherConfidenceFrames = 0
+        armLockedForRep = false
         
         // Reset depth compensation
         baseArmLength = nil
@@ -553,6 +565,12 @@ class PushupDetector {
         let currentArm = primaryArmIsLeft ? leftArm! : rightArm!
         let alternateArm = primaryArmIsLeft ? rightArm! : leftArm!
         
+        // If arm is locked during an active rep, don't allow switching
+        // This ensures consistent tracking throughout each pushup
+        if armLockedForRep {
+            return currentArm
+        }
+        
         // Check if alternate arm has significantly higher confidence
         let confidenceThreshold = currentPrimaryArmConfidence > 0 
             ? currentPrimaryArmConfidence * armSwitchConfidenceMargin 
@@ -843,6 +861,7 @@ class PushupDetector {
         if newState == .standing {
             currentState = .standing
             sawValidShoulderDropInCycle = false  // Reset for next cycle
+            armLockedForRep = false  // Allow arm switching when standing
             return
         }
         
@@ -857,20 +876,23 @@ class PushupDetector {
             
             // Count a rep when transitioning from ASCENDING to UP
             // This means we completed: UP -> DESCENDING -> DOWN -> ASCENDING -> UP
-            // Additional validation: shoulder must have dropped during the cycle
+            // Optional validation: shoulder must have dropped during the cycle (controlled by flag)
             if previousState == .ascending && currentState == .up {
-                if sawValidShoulderDropInCycle {
+                // Count if shoulder validation is disabled, OR if shoulder drop was detected
+                if !requireShoulderDropValidation || sawValidShoulderDropInCycle {
                     pushupCount += 1
                 }
                 // Reset for next cycle
                 sawValidShoulderDropInCycle = false
                 baseArmLength = nil  // Reset calibration for fresh measurement
                 upStateShoulderY = nil
+                armLockedForRep = false  // Allow arm switching between reps
             }
             
-            // Reset shoulder drop tracking when starting a new descent from UP
+            // Lock arm when starting a new descent from UP (beginning of rep)
             if previousState == .up && currentState == .descending {
                 sawValidShoulderDropInCycle = false
+                armLockedForRep = true  // Lock arm for consistent tracking during this rep
             }
         }
     }

@@ -1,55 +1,57 @@
 import SwiftUI
 
 /// Info panel overlay matching the CLI annotation style
-/// Displays pushup count, state, elbow angle bar, and tracking info
+/// Full-width panel with pushup count, state, elbow angle bar, tracking info, and vertical state legend
 struct InfoPanelOverlayView: View {
     
     @ObservedObject var cameraManager: CameraManager
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Row 1: Pushup Count (large)
-            Text("PUSHUPS: \(cameraManager.pushupCount)")
-                .font(.system(size: 28, weight: .bold, design: .monospaced))
-                .foregroundColor(.white)
-            
-            // Row 2: State with color
-            HStack(spacing: 8) {
-                Text("STATE:")
-                    .font(.system(size: 20, weight: .semibold, design: .monospaced))
+        HStack(alignment: .top, spacing: 12) {
+            // Left side: Main info content
+            VStack(alignment: .leading, spacing: 6) {
+                // Row 1: Pushup Count (large)
+                Text("PUSHUPS: \(cameraManager.pushupCount)")
+                    .font(.system(size: 24, weight: .bold, design: .monospaced))
                     .foregroundColor(.white)
                 
-                Text(cameraManager.pushupState.rawValue)
-                    .font(.system(size: 20, weight: .bold, design: .monospaced))
-                    .foregroundColor(stateColor)
-            }
-            
-            // Row 3: Elbow Angle Label
-            HStack(spacing: 8) {
-                Text("ELBOW ANGLE:")
-                    .font(.system(size: 16, weight: .medium, design: .monospaced))
-                    .foregroundColor(.white.opacity(0.9))
+                // Row 2: State with color
+                HStack(spacing: 6) {
+                    Text("STATE:")
+                        .font(.system(size: 16, weight: .semibold, design: .monospaced))
+                        .foregroundColor(.white)
+                    
+                    Text(cameraManager.pushupState.rawValue)
+                        .font(.system(size: 16, weight: .bold, design: .monospaced))
+                        .foregroundColor(stateColor)
+                }
                 
-                Text(angleText)
-                    .font(.system(size: 16, weight: .semibold, design: .monospaced))
-                    .foregroundColor(.white)
+                // Row 3: Elbow Angle Label
+                HStack(spacing: 6) {
+                    Text("ELBOW:")
+                        .font(.system(size: 14, weight: .medium, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.9))
+                    
+                    Text(angleText)
+                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                        .foregroundColor(.white)
+                } 
+                
+                // Row 4: Angle Progress Bar
+                AngleProgressBar(angle: cameraManager.elbowAngle)
+                
+                // Row 5: Primary Arm
+                Text("TRACKING: \(cameraManager.primaryArm) ARM")
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundColor(.yellow)
             }
             
-            // Row 4: Angle Progress Bar
-            AngleProgressBar(angle: cameraManager.elbowAngle)
+            Spacer()
             
-            // Row 5: Primary Arm
-            Text("TRACKING: \(cameraManager.primaryArm) ARM")
-                .font(.system(size: 14, weight: .medium, design: .monospaced))
-                .foregroundColor(.yellow)
-            
-            Divider()
-                .background(Color.white.opacity(0.3))
-            
-            // State Legend
-            StateLegend(currentState: cameraManager.pushupState)
+            // Right side: Vertical State Legend
+            CompactStateLegend(currentState: cameraManager.pushupState)
         }
-        .padding(16)
+        .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color.black.opacity(0.85))
@@ -58,7 +60,6 @@ struct InfoPanelOverlayView: View {
                         .stroke(stateColor, lineWidth: 3)
                 )
         )
-        .frame(width: 280)
     }
     
     // MARK: - Computed Properties
@@ -93,7 +94,7 @@ struct InfoPanelOverlayView: View {
 struct AngleProgressBar: View {
     let angle: Double?
     
-    private let barHeight: CGFloat = 16
+    private let barHeight: CGFloat = 14
     private let downThreshold: Double = 90
     private let upThreshold: Double = 150
     
@@ -131,16 +132,16 @@ struct AngleProgressBar: View {
             
             // Marker labels
             Text("90°")
-                .font(.system(size: 10, design: .monospaced))
-                .foregroundColor(.white.opacity(0.8))
-                .position(x: width * (90.0 / 180.0), y: barHeight + 12)
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundColor(.white.opacity(0.7))
+                .position(x: width * (90.0 / 180.0), y: barHeight + 10)
             
             Text("150°")
-                .font(.system(size: 10, design: .monospaced))
-                .foregroundColor(.white.opacity(0.8))
-                .position(x: width * (150.0 / 180.0), y: barHeight + 12)
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundColor(.white.opacity(0.7))
+                .position(x: width * (150.0 / 180.0), y: barHeight + 10)
         }
-        .frame(height: barHeight + 20)
+        .frame(height: barHeight + 16)
     }
     
     private func angleColor(for angle: Double) -> Color {
@@ -154,8 +155,38 @@ struct AngleProgressBar: View {
     }
 }
 
-// MARK: - State Legend
+// MARK: - Compact Vertical State Legend
 
+struct CompactStateLegend: View {
+    let currentState: PushupState
+    
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 3) {
+            legendDot(state: .up, label: "UP", color: Color(red: 0.2, green: 0.8, blue: 0.2))
+            legendDot(state: .descending, label: "D", color: Color(red: 1.0, green: 0.6, blue: 0.0))
+            legendDot(state: .down, label: "DN", color: Color(red: 1.0, green: 0.2, blue: 0.2))
+            legendDot(state: .ascending, label: "A", color: Color(red: 0.2, green: 0.6, blue: 1.0))
+            legendDot(state: .standing, label: "ST", color: Color(red: 0.8, green: 0.2, blue: 0.8))
+        }
+    }
+    
+    @ViewBuilder
+    private func legendDot(state: PushupState, label: String, color: Color) -> some View {
+        let isActive = currentState == state
+        
+        HStack(spacing: 4) {
+            Text(label)
+                .font(.system(size: 10, weight: isActive ? .bold : .regular, design: .monospaced))
+                .foregroundColor(color.opacity(isActive ? 1.0 : 0.4))
+            
+            Circle()
+                .fill(color.opacity(isActive ? 1.0 : 0.3))
+                .frame(width: isActive ? 10 : 8, height: isActive ? 10 : 8)
+        }
+    }
+}
+
+// Keep the old StateLegend for backwards compatibility if needed
 struct StateLegend: View {
     let currentState: PushupState
     
@@ -194,13 +225,13 @@ struct StateLegend: View {
         VStack {
             InfoPanelOverlayView(cameraManager: {
                 let manager = CameraManager()
-                // Preview with mock data would require @Published changes
                 return manager
             }())
+            .padding(.horizontal, 16)
             
             Spacer()
         }
-        .padding()
+        .padding(.top, 60)
     }
     .ignoresSafeArea()
 }
