@@ -2,6 +2,17 @@ import Foundation
 import Vision
 
 // MARK: - Data Models
+// Represents the distinct phases of a pushup motion tracked by our algorithm.
+// Uses a 4-state cycle (UP → DESCENDING → DOWN → ASCENDING → UP) instead of
+// just 2 states to prevent false positives from noise/jitter in joint detection.
+// A rep is only counted when this complete state sequence is observed.
+//
+// - up: Arms nearly straight (≥150°), ready position or top of pushup
+// - descending: Transitioning downward, arms bending
+// - down: Bottom position, depth threshold reached (≤90-105°)
+// - ascending: Pushing back up, arms extending
+// - unknown: Initial/fallback state when pose cannot be confidently determined
+// - standing: User is upright and has not assumed pushup position yet
 enum PushupState: String, Codable {
     case up = "UP"
     case descending = "DESCENDING"
@@ -12,20 +23,26 @@ enum PushupState: String, Codable {
 }
 
 // MARK: - Coordinate Smoother (Simple Moving Average)
+// Reduces jitter and noise in joint position detection using a Simple Moving Average (SMA).
+// Vision framework can have frame-to-frame variance in detected joint positions even when
+// the user isn't moving. Smoothing prevents false state transitions from this noise.
 class CoordinateSmoother {
-    private var history: [CGPoint] = []
-    private let windowSize: Int
+    private var history: [CGPoint] = []  // Stores the last N points
+    private let windowSize: Int          // How many points to average (default: 3)
     
     init(windowSize: Int = 3) {
         self.windowSize = windowSize
     }
     
+    // Applies simple moving average: returns the average position of the last 3 points.
+    // This dampens sudden jumps in joint detection while still tracking real movement.
     func smooth(_ point: CGPoint) -> CGPoint {
         history.append(point)
         if history.count > windowSize {
-            history.removeFirst()
+            history.removeFirst()  // Keep only the most recent N points
         }
         
+        // Calculate average X and Y coordinates
         let sumX = history.reduce(0) { $0 + $1.x }
         let sumY = history.reduce(0) { $0 + $1.y }
         let count = CGFloat(history.count)
@@ -33,20 +50,29 @@ class CoordinateSmoother {
         return CGPoint(x: sumX / count, y: sumY / count)
     }
     
+    // Clears history when tracking session resets or when user transitions to standing.
+    // Prevents stale position data from a previous session/position from affecting new tracking.
     func reset() {
         history.removeAll()
     }
 }
 
 // MARK: - Arm Data
+// Encapsulates the three key joints needed to track a single arm during pushup detection.
+// These three points allow us to calculate elbow angle (the primary metric for pushup phases)
+// and arm length (used for depth compensation when facing the camera).
 struct ArmData {
     let shoulder: CGPoint
     let elbow: CGPoint
     let wrist: CGPoint
-    let confidence: Float
-    let isLeft: Bool
-    
-    /// Calculate the 2D distance from shoulder to wrist (arm length in screen space)
+    let confidence: Float  // Sum of all three joint confidences (higher = more reliable detection)
+    let isLeft: Bool       // Tracks which arm this data represents
+
+    /// Calculate the 2D distance from shoulder to wrist (arm length in screen space).
+    /// This measurement is used for Z-axis depth compensation: when the user faces the camera,
+    /// the arm appears compressed in 2D even though the actual 3D arm length hasn't changed.
+    /// We use this compression ratio to relax the "down" angle threshold, preventing false
+    /// negatives when the elbow angle appears larger due to camera perspective.
     var armLength: CGFloat {
         let dx = wrist.x - shoulder.x
         let dy = wrist.y - shoulder.y
@@ -565,13 +591,13 @@ class PushupDetector {
         let currentArm = primaryArmIsLeft ? leftArm! : rightArm!
         let alternateArm = primaryArmIsLeft ? rightArm! : leftArm!
         
-        // If arm is locked during an active rep, don't allow switching
-        // This ensures consistent tracking throughout each pushup
+        // LOCK: If arm is locked during an active rep, don't allow switching.
+        // This ensures consistent tracking throughout each pushup (prevents state corruption).
         if armLockedForRep {
             return currentArm
         }
         
-        // Check if alternate arm has significantly higher confidence
+        // Check if alternate arm has significantly higher confidence (20%+ advantage)
         let confidenceThreshold = currentPrimaryArmConfidence > 0 
             ? currentPrimaryArmConfidence * armSwitchConfidenceMargin 
             : currentArm.confidence * armSwitchConfidenceMargin
@@ -579,7 +605,7 @@ class PushupDetector {
         if alternateArm.confidence > confidenceThreshold {
             alternateArmHigherConfidenceFrames += 1
             
-            // Only switch if maintained for enough frames
+            // Only switch if maintained for enough frames (5+ frames of sustained advantage)
             if alternateArmHigherConfidenceFrames >= armSwitchFrameThreshold {
                 alternateArmHigherConfidenceFrames = 0
                 return alternateArm
@@ -589,7 +615,7 @@ class PushupDetector {
             alternateArmHigherConfidenceFrames = 0
         }
         
-        // Stick with current primary arm
+        // Stick with current primary arm (hysteresis in action)
         return currentArm
     }
     
@@ -811,12 +837,23 @@ class PushupDetector {
     
     // MARK: - Temporal Buffer
     
+    /// Applies temporal buffering to filter out single-frame noise in state detection.
+    /// Requires seeing a new state for N consecutive frames before committing to the transition.
+    ///
+    /// WHY: Vision framework joint detection can have momentary glitches (e.g., a single frame
+    /// where DOWN incorrectly appears as UP). Without buffering, this noise would cause premature
+    /// state transitions and false rep counts. The buffer ensures state changes are real and sustained.
+    ///
+    /// SPECIAL CASE: Standing detection requires 30 frames (~1 second grace period) instead of 2.
+    /// This prevents false standing detection during brief pauses between reps when the user is
+    /// resting in the UP position before starting their next pushup.
     private func applyTemporalBuffer(rawState: PushupState) -> PushupState {
+        // Track how many consecutive frames we've seen this raw state
         if rawState == pendingState {
             pendingStateFrameCount += 1
         } else {
             pendingState = rawState
-            pendingStateFrameCount = 1
+            pendingStateFrameCount = 1  // First frame of new pending state
         }
         
         // Use different buffer thresholds depending on the target state
@@ -828,12 +865,12 @@ class PushupDetector {
             requiredFrames = stateChangeFrameBuffer    // 2 frames
         }
         
-        // Only change state if we've seen the new state for enough consecutive frames
+        // Only commit to state change if we've seen it sustained for enough frames
         if pendingStateFrameCount >= requiredFrames {
             return pendingState
         }
         
-        // Otherwise keep current state
+        // Otherwise keep current state (filter out the noise)
         return currentState
     }
     

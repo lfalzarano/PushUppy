@@ -22,42 +22,24 @@ struct CLIConfig {
     static let defaultInputFolder = "PushUppy/TestVideos/Input"
     static let defaultOutputFolder = "PushUppy/TestVideos/Output"
     
-    // Get project root - look for .xcodeproj or use script location
+    // Resolve the checkout from the launch directory or the executable location.
     static var projectRoot: URL {
         let fileManager = FileManager.default
-        var currentPath = URL(fileURLWithPath: fileManager.currentDirectoryPath)
-        
-        // Walk up the directory tree looking for .xcodeproj
-        while currentPath.path != "/" {
-            let contents = try? fileManager.contentsOfDirectory(atPath: currentPath.path)
-            if let contents = contents, contents.contains(where: { $0.hasSuffix(".xcodeproj") }) {
-                return currentPath
-            }
-            currentPath = currentPath.deletingLastPathComponent()
-        }
-        
-        // Fallback: try to find project root relative to executable location
-        if let executablePath = Bundle.main.executablePath {
-            var execURL = URL(fileURLWithPath: executablePath).deletingLastPathComponent()
-            // Go up from DerivedData/Build/Products/Debug to project root
-            while execURL.path.contains("DerivedData") || execURL.path.contains("Build") {
-                execURL = execURL.deletingLastPathComponent()
-            }
-            // Try to find project root from here
-            var searchPath = execURL
-            while searchPath.path != "/" {
-                let contents = try? fileManager.contentsOfDirectory(atPath: searchPath.path)
-                if let contents = contents, contents.contains(where: { $0.hasSuffix(".xcodeproj") }) {
-                    return searchPath
+        let workingDirectory = URL(fileURLWithPath: fileManager.currentDirectoryPath, isDirectory: true)
+        let executableDirectory = Bundle.main.executableURL?.deletingLastPathComponent()
+        for directory in [workingDirectory, executableDirectory].compactMap({ $0 }) {
+            var candidate = directory
+            while candidate.path != "/" {
+                let project = candidate.appendingPathComponent("PushUppy.xcodeproj")
+                if fileManager.fileExists(atPath: project.path) {
+                    return candidate
                 }
-                searchPath = searchPath.deletingLastPathComponent()
+                candidate = candidate.deletingLastPathComponent()
             }
         }
-        
-        // Last resort: use the working directory
-        return URL(fileURLWithPath: fileManager.currentDirectoryPath)
+        return workingDirectory
     }
-    
+
     static var inputFolder: URL {
         projectRoot.appendingPathComponent(defaultInputFolder)
     }

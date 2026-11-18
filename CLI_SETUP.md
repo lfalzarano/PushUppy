@@ -13,50 +13,9 @@ A macOS command line tool for fast pushup detection algorithm iteration.
 
 ## Quick Setup (5 minutes)
 
-### Step 1: Add CLI Target in Xcode
-
-1. **Open your project** in Xcode
-2. **File → New → Target...** (or click `+` at bottom of targets list)
-3. Choose **macOS → Command Line Tool**
-4. Configure:
-   - **Product Name:** `PushupCLI`
-   - **Language:** Swift
-5. Click **Finish**
-
-### Step 2: Add Source Files to CLI Target
-
-You need to share the detection code with the CLI target:
-
-1. **Click on `PushupDetector.swift`** in the Project Navigator
-2. **Open File Inspector** (right panel, or `Cmd+Opt+1`)
-3. Under **Target Membership**, check ✅ **PushupCLI**
-
-4. **Click on `VideoProcessor.swift`**
-5. Under **Target Membership**, check ✅ **PushupCLI**
-
-### Step 3: Add the CLI main.swift
-
-1. **In Project Navigator**, expand the new `PushupCLI` folder
-2. **Delete the default `main.swift`** that Xcode created
-3. **Drag `PushupCLI/main.swift`** (from the PushupCLI folder we created) into the PushupCLI group in Xcode
-4. Make sure it's added to the **PushupCLI** target
-
-### Step 4: Set Working Directory
-
-1. **Edit Scheme**: Product → Scheme → Edit Scheme (or `Cmd+<`)
-2. Select **Run** in the left sidebar
-3. Go to **Options** tab
-4. Check ✅ **Use custom working directory**
-5. Set it to your project folder:
-   ```
-   /path/to/PushUppy
-   ```
-6. Click **Close**
-
-### Step 5: Build & Run
-
-1. **Select the PushupCLI scheme** in Xcode's scheme selector (top toolbar)
-2. **Build & Run**: `Cmd+R`
+1. Open `PushUppy.xcodeproj` in Xcode 26 or later.
+2. Select the **PushupCLI** scheme and the **My Mac** destination.
+3. Press **Cmd+R** to build and run the CLI.
 
 ## Usage
 
@@ -64,7 +23,7 @@ You need to share the detection code with the CLI target:
 
 1. Put your pushup videos in:
    ```
-   TestVideos/Input/
+   PushUppy/TestVideos/Input/
    ```
 
 2. Name videos with expected count for accuracy tracking:
@@ -75,13 +34,15 @@ You need to share the detection code with the CLI target:
 
 4. Find annotated videos in:
    ```
-   TestVideos/Output/
+   PushUppy/TestVideos/Output/
    ```
 
 ### From Terminal
 
 ```bash
 cd "/path/to/PushUppy"
+xcodebuild -project PushUppy.xcodeproj -scheme PushupCLI -configuration Debug \
+  -destination 'platform=macOS' -derivedDataPath DerivedData build
 
 # Process all videos in TestVideos/Input
 ./DerivedData/Build/Products/Debug/PushupCLI
@@ -104,8 +65,8 @@ Just select the PushupCLI scheme and press `Cmd+R`!
 ║           🏋️ PushUppy Algorithm Testing Tool 🏋️              ║
 ╚══════════════════════════════════════════════════════════════╝
 
-📂 Input folder:  /Users/.../PushUppy/TestVideos/Input
-📂 Output folder: /Users/.../PushUppy/TestVideos/Output
+📂 Input folder:  /path/to/checkout/PushUppy/TestVideos/Input
+📂 Output folder: /path/to/checkout/PushUppy/TestVideos/Output
 
 🎬 Found 2 video(s) to process
 ────────────────────────────────────────────────────────────────
@@ -150,9 +111,9 @@ Just select the PushupCLI scheme and press `Cmd+R`!
 ════════════════════════════════════════════════════════════════
 
 📂 Annotated videos saved to:
-   /Users/.../PushUppy/TestVideos/Output
+   /path/to/checkout/PushUppy/TestVideos/Output
 
-💡 Open in Finder: open "/Users/.../PushUppy/TestVideos/Output"
+💡 Open in Finder: open "/path/to/checkout/PushUppy/TestVideos/Output"
 ```
 
 ## Algorithm Iteration Workflow

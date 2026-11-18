@@ -7,14 +7,14 @@ A beautiful iOS pushup tracking app using Vision framework for real-time body po
 ### For Development
 1. Open `PushUppy.xcodeproj` in Xcode
 2. Select **PushUppy** scheme
-3. Build and run (Cmd + R)
+3. Choose an iOS simulator and build and run (Cmd + R). For a physical device, select your own team under **Signing & Capabilities** and use a bundle identifier available to that team.
 
 ### For Testing Pushup Detection Algorithm
 1. **Set up CLI tool** (one-time): See [CLI_SETUP.md](CLI_SETUP.md)
-2. **Add test videos** to `TestVideos/Input/`
+2. **Add test videos** to `PushUppy/TestVideos/Input/`
 3. **Name videos** with expected count: `pushup_5.mp4`, `workout_10.mov`
 4. **Run CLI**: Select **PushupCLI** scheme → `Cmd + R`
-5. **Check results**: Annotated videos appear in `TestVideos/Output/`
+5. **Check results**: Annotated videos appear in `PushUppy/TestVideos/Output/`
 
 📖 **See [CLI_SETUP.md](CLI_SETUP.md) for detailed setup guide**
 
@@ -26,12 +26,12 @@ PushUppy/
 │   ├── ContentView.swift        # Main UI
 │   ├── PushupDetector.swift     # Detection algorithm ⭐
 │   ├── VideoProcessor.swift     # Video processing ⭐
-│   └── PushUppyApp.swift        # App entry point
+│   ├── PushUppyApp.swift        # App entry point
+│   └── TestVideos/
+│       ├── Input/
+│       └── Output/
 ├── PushupCLI/                  # macOS CLI tool
 │   └── main.swift              # Command line interface
-├── TestVideos/                 # Test video folders
-│   ├── Input/                  # Put videos here
-│   └── Output/                 # Annotated videos appear here
 ├── project.md                  # Design doc
 ├── CLI_SETUP.md               # CLI setup guide
 └── README.md                  # This file
@@ -41,7 +41,7 @@ PushUppy/
 
 ## Tech Stack
 
-- **Swift + SwiftUI** (iOS 17+)
+- **Swift + SwiftUI** (iOS 26+)
 - **Vision Framework** for body pose detection (2D)
 - **AVFoundation** for video processing
 - **macOS CLI Tool** for algorithm testing (runs on Mac, no device needed!)
@@ -64,19 +64,19 @@ PushUppy/
 
 ## Development Workflow
 
-1. **Add test videos** to `TestVideos/Input/` with known pushup counts
+1. **Add test videos** to `PushUppy/TestVideos/Input/` with known pushup counts
 2. **Run CLI tool** (macOS, no device needed!)
 3. **Check console** for accuracy metrics and stats
-4. **Watch annotated videos** in `TestVideos/Output/` to debug
+4. **Watch annotated videos** in `PushUppy/TestVideos/Output/` to debug
 5. **Tune thresholds** in `PushupDetector.swift`
 6. **Repeat** until accuracy is high
 7. **Integrate** into live iOS app
 
 ## Requirements
 
-- Xcode 15+
-- macOS for CLI tool (algorithm testing)
-- iOS 17+ device for running the app (when ready)
+- Xcode 26+
+- macOS 26+ for the CLI
+- iOS 26+ for the app
 
 ## Notes
 

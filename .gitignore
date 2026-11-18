@@ -48,9 +48,14 @@ PushUppyTests/summary.csv
 *.MOV
 *.MP4
 
-**/TestVideos/Output/*
-# But keep the .gitkeep file so the folder exists
-!**/TestVideos/Output/.gitkeep
+# Keep the test folder structure, but keep local media and output out of Git.
+PushUppy/TestVideos/*
+!PushUppy/TestVideos/Input/
+!PushUppy/TestVideos/Output/
+PushUppy/TestVideos/Input/*
+PushUppy/TestVideos/Output/*
+!PushUppy/TestVideos/Input/.gitkeep
+!PushUppy/TestVideos/Output/.gitkeep
 
 # Xcode user settings
 xcuserdata/

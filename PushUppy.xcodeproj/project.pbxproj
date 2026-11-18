@@ -35,6 +35,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C102F62A2F0CCF7D00E0A965 /* Exceptions for "PushUppy" folder in "PushUppy" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				TestVideos/Input/.gitkeep,
+				TestVideos/Output/.gitkeep,
+			);
+			target = C102F5F52F0B8F8F00E0A965 /* PushUppy */;
+		};
 		C102F6292F0CCF7D00E0A965 /* Exceptions for "PushUppy" folder in "PushUppyTests" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -57,6 +65,7 @@
 		C102F5F82F0B8F8F00E0A965 /* PushUppy */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				C102F62A2F0CCF7D00E0A965 /* Exceptions for "PushUppy" folder in "PushUppy" target */,
 				C102F6292F0CCF7D00E0A965 /* Exceptions for "PushUppy" folder in "PushUppyTests" target */,
 				C11A646C2F0DE36000BEA724 /* Exceptions for "PushUppy" folder in "PushupCLI" target */,
 			);
