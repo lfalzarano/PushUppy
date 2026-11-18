@@ -35,14 +35,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		C102F62A2F0CCF7D00E0A965 /* Exceptions for "PushUppy" folder in "PushUppy" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				TestVideos/Input/.gitkeep,
-				TestVideos/Output/.gitkeep,
-			);
-			target = C102F5F52F0B8F8F00E0A965 /* PushUppy */;
-		};
 		C102F6292F0CCF7D00E0A965 /* Exceptions for "PushUppy" folder in "PushUppyTests" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -50,6 +42,14 @@
 				VideoProcessor.swift,
 			);
 			target = C102F6182F0CCE8D00E0A965 /* PushUppyTests */;
+		};
+		C102F62A2F0CCF7D00E0A965 /* Exceptions for "PushUppy" folder in "PushUppy" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				TestVideos/Input/.gitkeep,
+				TestVideos/Output/.gitkeep,
+			);
+			target = C102F5F52F0B8F8F00E0A965 /* PushUppy */;
 		};
 		C11A646C2F0DE36000BEA724 /* Exceptions for "PushUppy" folder in "PushupCLI" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -409,6 +409,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = WCQZ9UQGVL;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "PushUppy needs camera access to detect and count your pushups in real-time.";
@@ -441,6 +442,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = WCQZ9UQGVL;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "PushUppy needs camera access to detect and count your pushups in real-time.";
